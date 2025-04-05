@@ -268,6 +268,7 @@ impl Cube{
     }
     
     pub fn update_cube_render(&mut self, driver: &Driver ,mut dur: f32){
+
         dur *= ANIMATION_SPEED;
         
         let transf_matrix = create_transforms(
@@ -282,7 +283,8 @@ impl Cube{
         3.0 * dur.cos(), // X position (orbiting)
         2.0,                        // Y position (fixed height)
         3.0 * dur.sin(), // Z position (orbiting)
-    );
+
+        );
 
     // Update the view matrix to look at the cube's center
     self.view_mat = create_view(
@@ -423,14 +425,16 @@ impl Cube{
         data.to_vec()
     }
 
-    pub fn render(&mut self, driver: &Driver) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, driver: &Driver<'_>) -> Result<(), wgpu::SurfaceError> {
         let output = driver.surface.get_current_texture()?;
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        console::log_1(&format!("config.width: {}, config.height: {}", self.config.width, self.config.height).into());
+
         let depth_texture = driver.device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("depth texture"),
             size: wgpu::Extent3d{
                 width: self.config.width,
                 height: self.config.height,
@@ -443,13 +447,15 @@ impl Cube{
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
-
-        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor{
+            label: Some("depth view texture"),
+            ..Default::default()
+        });
         let mut encoder = driver.device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Cube encoder")
         });
-
+       console::log_1(&"before render pass".into()); 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -473,16 +479,16 @@ impl Cube{
                 timestamp_writes: None,
             });
 
+            console::log_1(&"After render pass".into());
             render_pass.set_pipeline(&self.buffer_render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &self.uniform_bg, &[]);
             render_pass.draw(0..36,0..1);
-        }
-
+        } 
         driver.queue.submit(iter::once(encoder.finish()));
         output.present();
     
-        
+                console::log_1(&"leaving func".into());
         Ok(())
     }
 

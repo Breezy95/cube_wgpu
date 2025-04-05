@@ -11,7 +11,7 @@ use winit::{
 };
 
 
-use crate::{camera::{self, Camera}, shape_helpers, wgpu_helpers};
+use crate::{camera::{self, Camera}, wgpu_helpers};
 
 const ANIMATION_SPEED:f32 = 1.0;
 const IS_PERSPECTIVE: bool = true;
@@ -186,7 +186,7 @@ impl<'a> State<'a> {
 */
     let buffer_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor { 
         label: Some("shader"), 
-        source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
      });
 
      let buffer_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -201,7 +201,7 @@ impl<'a> State<'a> {
         vertex: wgpu::VertexState {
             module: &buffer_shader,
              entry_point: Some("vs_main"),
-               buffers: &[shape_helpers::Vertex::desc()],
+               buffers: &[wgpu_helpers::Vertex::desc()],
             compilation_options: Default::default(),
             },
         primitive: wgpu::PrimitiveState {
@@ -236,7 +236,7 @@ impl<'a> State<'a> {
 
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
         label: Some("First vertex buffer"),
-        contents: bytemuck::cast_slice(&shape_helpers::create_vertices()),
+        contents: bytemuck::cast_slice(&State::create_vertices()),
         usage: BufferUsages::VERTEX,
     });
 
@@ -268,6 +268,14 @@ impl<'a> State<'a> {
     fn window(&self) -> &Window {
         &self.window
     }
+
+    pub fn create_vertices() -> Vec<[f32; 3]> {
+    vec![
+        [-0.5, -0.5, 0.0], // Bottom-left
+        [0.5, -0.5, 0.0],  // Bottom-right
+        [0.0, 0.5, 0.0],   // Top-center
+    ]
+}
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {

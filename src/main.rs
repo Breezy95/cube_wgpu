@@ -9,9 +9,8 @@ use winit::platform::pump_events::EventLoopExtPumpEvents;
 use winit::window::WindowBuilder;
 
 mod state;
-
-mod wgpu_helpers;
-mod shape_helpers;
+pub mod wasm_driver;
+pub mod wgpu_helpers;
 mod camera;
 
 

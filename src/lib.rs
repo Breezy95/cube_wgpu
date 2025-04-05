@@ -3,7 +3,7 @@ use std::{sync::Arc, time::{self, Instant}};
 use cgmath::{Point3, Vector3};
 use wasm_bindgen::prelude::*;
 use wasm_driver::Driver;
-use web_sys::console;
+use web_sys::{console, HtmlCanvasElement};
 use wgpu::{rwh::HasWindowHandle, SurfaceConfiguration};
 use wgpu_helpers::Cube;
 use winit::{dpi::LogicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::Window};
@@ -14,9 +14,9 @@ pub mod wgpu_helpers;
 
 const IS_PERSPECTIVE: bool = true;
 
-pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (u32,u32,f32), ratio: f32) {
+pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (u32,u32,f32), ratio: f32, canvas: Option<HtmlCanvasElement>) {
     console::log_1(&"in run wasm".into());
-    let driver = Driver::new(&window).await;
+    let driver = Driver::new(&window, canvas).await;
     let surface_capabilities = driver.surface.get_capabilities(&driver.adapter);
     let surface_format = surface_capabilities.formats.iter().copied().
     find(|f| f
@@ -33,6 +33,13 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
         alpha_mode: surface_capabilities.alpha_modes[0],
         view_formats: vec![],
     };
+
+    if driver_config.width == 0 || driver_config.height == 0 {
+    console::log_1(&format!("inner window dimensions are {} and {}!", inner_size.width,inner_size.height).into());
+    console::log_1(&format!("Driver config dimensions are {} and {}!", driver_config.width, driver_config.height).into());
+    panic!();
+
+}
 
     let camera_eye: Point3<f32> = (3.0, 1.5, 3.0).into();
     let look_dir: Point3<f32> = (0.0, 0.0, 0.0).into();
@@ -62,19 +69,7 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
      let buffer_pll = Cube::create_buffer_render_pipeline_layout(&driver, &[&uniform_bgl]);
      let buffer_shader = &Cube::create_shader(&driver, None);
      let driver_cfg_clone = driver_config.clone();
-    /* 
-    let mut cube_render =Cube::new(
-        &driver, 
-        &driver_config,
-         camera_eye,
-          look_dir,
-           up_dir,
-            ratio,
-             true);
-     
-     
-     
-     */
+    
     let vertex_buffer =Cube::create_vertex_buffer(&driver);
     let buffer_render_pipeline = Cube::create_buffer_render_pipeline(&driver, Some(&buffer_pll), buffer_shader, driver_config.format);
      let mut cube_render = Cube {
@@ -84,7 +79,7 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
         uniform_buffer: uniform_buffer,
         uniform_bgl,
         vertex_buffer,
-        buffer_render_pipeline, //Cube::create_buffer_render_pipeline(&driver, Some(&buffer_pll), buffer_shader, driver_config.format),
+        buffer_render_pipeline, 
         view_mat,
         project_mat,
     };
@@ -100,7 +95,7 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
     .unwrap()
     .now() as f32 / 1000.0;
     //console::log_1(String::from(render_start_time).as_str());
-    cube_render.render(&driver);
+    //cube_render.render(&driver);
     event_loop.run(move |event, control_flow| {
         control_flow.set_control_flow(ControlFlow::Poll);
         match event {
@@ -119,10 +114,8 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
                 let curr_time:f32 = web_sys::window().unwrap().performance().unwrap().now() as f32 / 1000.0;
                 let time_diff = curr_time - render_start_time;
                 console::log_1(&format!("curr_time: {}, time diff: {}, render_start_time: {}", curr_time, time_diff,time_diff).into());
-
                 cube_render.update_cube_render(&driver, time_diff);
                 cube_render.render(&driver);
-
             }
             Event::NewEvents(..) => {
 
@@ -142,19 +135,31 @@ fn calculate_dimensions(res: i32, width: u32, height: u32) -> (u32, u32, f32){
     (x_pixels, y_pixels, pixel_size as f32)
 }
 
+
+
 #[wasm_bindgen]
-pub fn run(pixel_ratio: f32, width: u32, height: u32) {
+pub fn run(pixel_ratio: f32, width: u32, height: u32,canvas: Option<HtmlCanvasElement>) {
     let res = 1000;
     let event_loop = EventLoop::new().unwrap();
     let dimensions = calculate_dimensions(res, width, height);
+    
+    if dimensions.0 == 0 || dimensions.1 == 0 {
+    console::log_1(&format!("Calculated dimensions are zero! \nres:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
+    } else {
+        console::log_1(&format!("res:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
+    }
+
     let window = Arc::new(winit::window::WindowBuilder::new()
                         .with_inner_size(LogicalSize{width: dimensions.0 as f32 * dimensions.2, height: dimensions.1 as f32 * dimensions.2})
                         .build(&event_loop).unwrap());
+    console::log_1(&format!("inner window dims before entering thread: {}, {}", window.inner_size().height, window.inner_size().width).into());
     #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
     use winit::platform::web::WindowExtWebSys;
     use wasm_bindgen_futures;
     use web_sys;
     console_log::init().expect("could not initialize logger");
+    console::log_1(&"Hello from before run".into());
+    if canvas.is_none() {
     #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
     web_sys::window()
         .and_then(|win| win.document())
@@ -164,8 +169,15 @@ pub fn run(pixel_ratio: f32, width: u32, height: u32) {
                 .ok()
         })
         .expect("couldn't append canvas to document body");
+        
+        console::log_1(&"Using window created in program".into());
+        wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, None));
+    }
+    else {
+        console::log_1(&"Using window passed from program".into());
+        wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, canvas));
+    }
     
-    console::log_1(&"Hello from before run".into());
-    wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2));
+    
 }
 
