@@ -3,10 +3,10 @@ use std::{sync::Arc, time::{self, Instant}};
 use cgmath::{Point3, Vector3};
 use wasm_bindgen::prelude::*;
 use wasm_driver::Driver;
-use web_sys::{console, HtmlCanvasElement};
+use web_sys::{console, HtmlCanvasElement, Node};
 use wgpu::{rwh::HasWindowHandle, SurfaceConfiguration};
 use wgpu_helpers::Cube;
-use winit::{dpi::LogicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::Window};
+use winit::{dpi::{LogicalSize, PhysicalSize}, event::{Event, StartCause, WindowEvent}, event_loop::{ControlFlow, EventLoop}, window::Window};
 pub mod wasm_driver;
 pub mod wgpu_helpers;
 
@@ -117,9 +117,9 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
                 cube_render.update_cube_render(&driver, time_diff);
                 cube_render.render(&driver);
             }
-            Event::NewEvents(..) => {
+            Event::NewEvents(start_cause) => {
 
-                console::log_1(&"event loop new events".into());
+                console::log_1(&format!("event loop new events {0:#?}", start_cause).into());
             }
             _ => {console::log_1(&"random event".into());}
         }
@@ -143,41 +143,66 @@ pub fn run(pixel_ratio: f32, width: u32, height: u32,canvas: Option<HtmlCanvasEl
     let event_loop = EventLoop::new().unwrap();
     let dimensions = calculate_dimensions(res, width, height);
     
-    if dimensions.0 == 0 || dimensions.1 == 0 {
-    console::log_1(&format!("Calculated dimensions are zero! \nres:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
-    } else {
-        console::log_1(&format!("res:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
+    if !(dimensions.0 == 0 || dimensions.1 == 0) {
+        console::log_1(&format!("Calculated dimensions are res:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
     }
 
     let window = Arc::new(winit::window::WindowBuilder::new()
-                        .with_inner_size(LogicalSize{width: dimensions.0 as f32 * dimensions.2, height: dimensions.1 as f32 * dimensions.2})
+                        .with_inner_size(PhysicalSize::new(450, 400))//LogicalSize{width: dimensions.0 as f32 * dimensions.2, height: dimensions.1 as f32 * dimensions.2})
                         .build(&event_loop).unwrap());
     console::log_1(&format!("inner window dims before entering thread: {}, {}", window.inner_size().height, window.inner_size().width).into());
+    
     #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
     use winit::platform::web::WindowExtWebSys;
+
     use wasm_bindgen_futures;
     use web_sys;
     console_log::init().expect("could not initialize logger");
     console::log_1(&"Hello from before run".into());
     if canvas.is_none() {
-    #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
-    web_sys::window()
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "wasm32")] { 
+            //, target_os = "unknown"))]
+
+    let document = web_sys::window()
         .and_then(|win| win.document())
-        .and_then(|doc| doc.body())
-        .and_then(|body| {
-            body.append_child(&web_sys::Element::from(window.canvas().unwrap()))
-                .ok()
-        })
-        .expect("couldn't append canvas to document body");
-        
-        console::log_1(&"Using window created in program".into());
+        .expect("could not get document");
+    
+    let body = document.body().expect("could not get body");
+
+    // Create a div element for the canvas container
+    let mut cube_cont = document.get_element_by_id("cube_container");
+    if cube_cont.is_none() {
+    cube_cont =document.create_element("div").ok();
+    
+    cube_cont.clone().unwrap().set_id("cube-container");
+    }
+    let cube_cont_div = cube_cont.unwrap();
+    cube_cont_div
+        .set_attribute(
+            "style",
+            "position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden;",
+        )
+        .unwrap();
+
+    // Create the canvas element and append it to the container
+    let elem = &web_sys::Element::from(window.canvas().unwrap());
+    elem.set_id("cube_canvas");
+    cube_cont_div.append_child(elem).unwrap();
+
+    // Append the container to the body
+    body.append_child(&cube_cont_div).unwrap();
+            
+
         wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, None));
     }
     else {
-        console::log_1(&"Using window passed from program".into());
-        wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, canvas));
+    #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
+    wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, canvas));
+
     }
     
     
 }
-
+}
+}

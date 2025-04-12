@@ -20,12 +20,10 @@ export class MainPage {
       //run(window.devicePixelRatio, window.innerWidth, window.innerHeight, null)
       console.log(window.devicePixelRatio, window.innerWidth, window.innerHeight)
        requestAnimationFrame(() => {
-        let canvas = document.getElementById("rustyCanvas") as HTMLCanvasElement;
-        if (canvas) {
+        
+      
             run(window.devicePixelRatio, window.innerWidth, window.innerHeight, null);
-        } else {
-            console.error("Canvas not found!");
-        }
+       
     });
      // run(window.devicePixelRatio, window.innerWidth, window.innerHeight, document.getElementById("rustyCanvas") as HTMLCanvasElement)
    }
@@ -41,10 +39,8 @@ export class MainPage {
    }
    
    private canvasCreator(): void {
-    let cont = document.createElement("canvas")
-    cont.id = "rustyCanvas"
-    cont.height = 150
-    cont.width = 300
+    let cont = document.createElement("div")
+    cont.id = "canvas-container"
     cont.tabIndex = 0
     document.body.appendChild(cont)
    }
