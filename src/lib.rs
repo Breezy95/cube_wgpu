@@ -93,7 +93,7 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
     .unwrap()
     .performance()
     .unwrap()
-    .now() as f32 / 1000.0;
+    .now() as f32 % 100_000_000.0;
     //console::log_1(String::from(render_start_time).as_str());
     //cube_render.render(&driver);
     event_loop.run(move |event, control_flow| {
@@ -111,7 +111,7 @@ pub async fn run_wasm(event_loop: EventLoop<()>, window:Arc<Window>, location: (
             Event::AboutToWait => {win_clone.request_redraw()}
 
             Event::WindowEvent { window_id, event: WindowEvent::RedrawRequested, ..} => {
-                let curr_time:f32 = web_sys::window().unwrap().performance().unwrap().now() as f32 / 1000.0;
+                let curr_time:f32 = web_sys::window().unwrap().performance().unwrap().now() as f32 % 1_000_000.0;
                 let time_diff = curr_time - render_start_time;
                 console::log_1(&format!("curr_time: {}, time diff: {}, render_start_time: {}", curr_time, time_diff,time_diff).into());
                 cube_render.update_cube_render(&driver, time_diff);

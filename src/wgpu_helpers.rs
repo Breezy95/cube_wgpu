@@ -11,7 +11,7 @@ use std::{iter, mem, option};
 use crate::wasm_driver::Driver;
 
 
-const ANIMATION_SPEED: f32 = 1.0;
+const ANIMATION_SPEED: f32 = 0.001;
 
 
 #[repr(C)]
