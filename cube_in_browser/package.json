@@ -10,10 +10,10 @@
   },
   "devDependencies": {
     "typescript": "~5.7.2",
-    "vite": "^6.2.0"
+    "vite": "^6.3.4"
   },
   "dependencies": {
-    "vite-plugin-wasm": "^3.4.1",
-    "cube_render_wasm": "file:../pkg"
+    "cube_render_wasm": "file:../pkg",
+    "vite-plugin-wasm": "^3.4.1"
   }
 }

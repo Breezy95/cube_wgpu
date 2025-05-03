@@ -5,7 +5,8 @@ use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::event::*;
-use winit::platform::pump_events::EventLoopExtPumpEvents;
+//#[cfg(target_arch = "wasm32")]
+//use winit::platform::pump_events::EventLoopExtPumpEvents;
 use winit::window::WindowBuilder;
 
 mod state;

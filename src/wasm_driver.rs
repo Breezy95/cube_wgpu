@@ -16,34 +16,26 @@ impl<'a> Driver<'a>{
     pub async fn new(window: &'a winit::window::Window, canvas: Option<HtmlCanvasElement>) -> Driver<'a>{
         let size = window.inner_size();
         let instance = wgpu::Instance::default();
-        let mut surface_target: SurfaceTarget; 
-        let surface_result: Result<Surface, wgpu::CreateSurfaceError> = if canvas.is_some() {
-            
-            let canvas = canvas.unwrap();
-            cfg_if::cfg_if! {
-            if #[cfg(target_arch="wasm32")] {
-                console::log_1(&format!("using canvas for surface target height {}", canvas.height()).into());
-            surface_target= SurfaceTarget::Canvas(canvas);
-            }
-            else {
-                surface_target = SurfaceTarget::from(window);
-                 console::log_1(&"not using canvas for surface target".into());
-                }
-            }
-            let variant = matches!(surface_target, SurfaceTarget::Window {..});
-            console::log_1(&format!("variant value is Windows if true {}",variant.into_integer()).into());
-            
-            Ok(instance.create_surface(surface_target).expect(format!("error in surface target creation of  {}", match variant {
-            true  => {"type Window"}
-            _ => {"type Canvas"}
-            }).as_str()))
 
-            } else {
-            
-            instance.create_surface(window)
-            
+ console::log_1(&"before new surface".into());
+        #[cfg(target_arch="wasm32")]
+        let surface = {
+            if canvas.is_some(){
+                let surface_target = wgpu::SurfaceTarget::Canvas(canvas.unwrap());
+                instance.create_surface(surface_target).expect("Failed to create surface for wasm32 target")
+            }
+            else{
+                let surface_target = SurfaceTarget::from(window);
+                instance.create_surface(surface_target).expect("could not create surface with native target")
+            }
+};
+
+        #[cfg(not(target_arch="wasm32"))]
+        let surface = {
+            let surface_target = SurfaceTarget::from(window);
+            instance.create_surface(surface_target).expect("could not create surface with native target")
         };
-        let surface = surface_result.unwrap();
+         console::log_1(&"create surface".into());
         let adapter = instance.
         request_adapter( &wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),

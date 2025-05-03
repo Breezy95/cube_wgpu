@@ -147,10 +147,7 @@ pub fn run(pixel_ratio: f32, width: u32, height: u32,canvas: Option<HtmlCanvasEl
         console::log_1(&format!("Calculated dimensions are res:{0}\twidth:{1}\theight:{2}",dimensions.0,dimensions.1, dimensions.2).into());
     }
 
-    let window = Arc::new(winit::window::WindowBuilder::new()
-                        .with_inner_size(PhysicalSize::new(450, 400))//LogicalSize{width: dimensions.0 as f32 * dimensions.2, height: dimensions.1 as f32 * dimensions.2})
-                        .build(&event_loop).unwrap());
-    console::log_1(&format!("inner window dims before entering thread: {}, {}", window.inner_size().height, window.inner_size().width).into());
+    
     
     #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
     use winit::platform::web::WindowExtWebSys;
@@ -159,50 +156,65 @@ pub fn run(pixel_ratio: f32, width: u32, height: u32,canvas: Option<HtmlCanvasEl
     use web_sys;
     console_log::init().expect("could not initialize logger");
     console::log_1(&"Hello from before run".into());
+    let window_builder = {
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::WindowBuilderExtWebSys;
+        if let Some(ref canvas_element) = canvas {
+            winit::window::WindowBuilder::new().with_canvas(Some(canvas_element.clone()))
+        } else {
+            winit::window::WindowBuilder::new()
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        winit::window::WindowBuilder::new()
+    }
+};
+
+    let window = Arc::new(window_builder
+        .with_inner_size(PhysicalSize::new(450, 400))
+        .build(&event_loop)
+        .unwrap());
+
+#[cfg(target_arch="wasm32")]
     if canvas.is_none() {
-    cfg_if::cfg_if! {
-        if #[cfg(target_arch = "wasm32")] { 
-            //, target_os = "unknown"))]
+                let document = web_sys::window()
+                    .and_then(|win| win.document())
+                    .expect("could not get document");
 
-    let document = web_sys::window()
-        .and_then(|win| win.document())
-        .expect("could not get document");
-    
-    let body = document.body().expect("could not get body");
+                let body = document.body().expect("could not get body");
 
-    // Create a div element for the canvas container
-    let mut cube_cont = document.get_element_by_id("cube_container");
-    if cube_cont.is_none() {
-    cube_cont =document.create_element("div").ok();
-    
-    cube_cont.clone().unwrap().set_id("cube-container");
-    }
-    let cube_cont_div = cube_cont.unwrap();
-    cube_cont_div
-        .set_attribute(
-            "style",
-            "position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden;",
-        )
-        .unwrap();
+                // Create a div element for the canvas container
+                let mut cube_cont = document.get_element_by_id("cube_container");
+                if cube_cont.is_none() {
+                    cube_cont = document.create_element("div").ok();
+                    cube_cont.clone().unwrap().set_id("cube-container");
+                }
+                let cube_cont_div = cube_cont.unwrap();
+                cube_cont_div
+                    .set_attribute(
+                        "style",
+                        "position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden;",
+                    )
+                    .unwrap();
 
-    // Create the canvas element and append it to the container
-    let elem = &web_sys::Element::from(window.canvas().unwrap());
-    elem.set_id("cube_canvas");
-    cube_cont_div.append_child(elem).unwrap();
+                // Create the canvas element and append it to the container
+                let elem = &web_sys::Element::from(window.canvas().unwrap());
+                elem.set_id("cube_canvas");
+                cube_cont_div.append_child(elem).unwrap();
 
-    // Append the container to the body
-    body.append_child(&cube_cont_div).unwrap();
+
+                body.append_child(&cube_cont_div).unwrap();
+               } 
+
+                wasm_bindgen_futures::spawn_local(run_wasm(
+                    event_loop,
+                    window,
+                    dimensions,
+                    pixel_ratio * dimensions.2,
+                    canvas,
+                ));
             
-
-        wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, None));
-    }
-    else {
-    #[cfg(target_arch = "wasm32")] //, target_os = "unknown"))]
-    wasm_bindgen_futures::spawn_local(run_wasm(event_loop, window, dimensions, pixel_ratio * dimensions.2, canvas));
-
-    }
-    
-    
-}
-}
-}
+        }
