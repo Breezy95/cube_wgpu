@@ -193,12 +193,7 @@ pub fn run(pixel_ratio: f32, width: u32, height: u32,canvas: Option<HtmlCanvasEl
                     cube_cont.clone().unwrap().set_id("cube-container");
                 }
                 let cube_cont_div = cube_cont.unwrap();
-                cube_cont_div
-                    .set_attribute(
-                        "style",
-                        "position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden;",
-                    )
-                    .unwrap();
+
 
                 // Create the canvas element and append it to the container
                 let elem = &web_sys::Element::from(window.canvas().unwrap());

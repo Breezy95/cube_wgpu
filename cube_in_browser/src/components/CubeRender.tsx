@@ -1,62 +1,51 @@
 // src/components/MainPage.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import init, { run } from '../../pkg/cube_take_two';
-
+import '../Card.css'
 const CubeRenderComponent: React.FC = () => {
+
+  const canvasRef = useRef<HTMLCanvasElement>(document.getElementById("cube-container") as HTMLCanvasElement);
   useEffect(() => {
     const initialize = async () => {
       console.log("begin");
       await init();
       console.log(window.devicePixelRatio, window.innerWidth, window.innerHeight);
+      const canvas = canvasRef.current;
       run(
         window.devicePixelRatio,
         window.innerWidth,
         window.innerHeight,
-        document.getElementById("cube-container") as HTMLCanvasElement
+        canvas
       );
     };
     initialize();
   }, []);
 
-  const handleSourceClick = () => {
-    window.location.href = "https://github.com/Breezy95/cube_wgpu";
-  };
+
 
   return (
-    
-    <div>
-      <div className="button-controls">
-        <button
-          className="welcome-button"
-          id="source"
-          onClick={handleSourceClick}
-        >
-          Source
-        </button>
+    <div className="card" id = 'cube-container'>
+      <div className="card-artframe">
+        <canvas
+          ref={canvasRef}
+          width={100}
+          height={10}
+          className="card-canvas"
+        />
       </div>
-      <div className='card'>
-        <div className='card-canvas-div'>
-      <canvas className="" id="cube-container" />
-        </div>
-        <div className='card-content'>
-          klkjlkjkljklj
-
+      <div className="card-body">
+        <div className="card-title">
+          The Lost Cube
+          </div>
+        <div className="card-type">Artifact — WGPU Renderer</div>
+        <div className="card-text">
+          A lonely cube drifts through the void, seeking the fragments of its tesseract. Ironically, it's faces lacku the dimension to comprehend the truth it seeks. 
         </div>
       </div>
     </div>
   );
+
+
 };
 
-/*
-<div class="card">
-    <div class="card-canvas" id="render-area">
-      <!-- Insert your <canvas> or WebGPU render target here -->
-      <canvas id="renderCanvas" width="320" height="200"></canvas>
-    </div>
-    <div class="card-content">
-      <div class="card-title">My Render</div>
-      <div class="card-text">This is a simple card layout with a render area on top.</div>
-    </div>
-  </div>
-*/
 export default CubeRenderComponent;

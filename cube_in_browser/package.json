@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "cube_render_wasm": "file:../pkg",
+    "embla-carousel": "^8.6.0",
     "vite-plugin-wasm": "^3.4.1"
   }
 }
