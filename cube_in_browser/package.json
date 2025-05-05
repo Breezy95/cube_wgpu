@@ -1,0 +1,20 @@
+{
+  "name": "cube_in_browser",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.3.4"
+  },
+  "dependencies": {
+    "cube_render_wasm": "file:../pkg",
+    "embla-carousel": "^8.6.0",
+    "vite-plugin-wasm": "^3.4.1"
+  }
+}
